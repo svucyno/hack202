@@ -1,0 +1,22 @@
+Options -Indexes
+RewriteEngine On
+
+# Force HTTPS (uncomment for production)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Protect PHP config
+<Files "config.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Security headers
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options SAMEORIGIN
+Header always set X-XSS-Protection "1; mode=block"
+
+# PHP settings
+php_flag display_errors Off
+php_value session.cookie_httponly 1
+php_value session.use_strict_mode 1
