@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login — MedCare Hospital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --role-color:#C9A84C; --role-glow:rgba(201,168,76,0.25); --bg:#0D1117; --surface:#161B22; --surface2:#1C2128; --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12); --text:#E6EDF3; --text2:#8B949E; --text3:#484F58; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .bg-accent{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 50% 50% at 30% 50%,rgba(201,168,76,0.06) 0%,transparent 60%)}
+  .grid-bg{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:50px 50px}
+  .login-wrapper{position:relative;z-index:10;width:100%;max-width:900px;display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border:1px solid var(--border2);border-radius:24px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(201,168,76,0.08);animation:wrapper-in 0.5s ease}
+  @keyframes wrapper-in{from{opacity:0;transform:scale(0.95) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @media(max-width:640px){.login-wrapper{grid-template-columns:1fr}.login-panel-left{display:none}}
+  .login-panel-left{background:linear-gradient(135deg,#1A1408 0%,#211B0A 50%,#261F0E 100%);padding:48px 40px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+  .panel-decoration{position:absolute;inset:0;background:radial-gradient(circle at 30% 70%,rgba(201,168,76,0.1) 0%,transparent 60%)}
+  .panel-content{position:relative;z-index:1}
+  .back-link{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.4);text-decoration:none;font-size:0.78rem;font-weight:500;transition:color 0.2s;margin-bottom:48px}
+  .back-link:hover{color:var(--role-color)}
+  .panel-role-icon{width:72px;height:72px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:24px}
+  .panel-title{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:white;line-height:1.2;margin-bottom:12px}
+  .panel-desc{color:rgba(255,255,255,0.45);font-size:0.85rem;line-height:1.7}
+  .panel-features{margin-top:32px;display:flex;flex-direction:column;gap:12px}
+  .panel-feature{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.5);font-size:0.82rem}
+  .feature-dot{width:6px;height:6px;border-radius:50%;background:var(--role-color);flex-shrink:0}
+  .panel-footer{position:relative;z-index:1}
+  .hospital-branding{display:flex;align-items:center;gap:8px}
+  .brand-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#E94560,#C9A84C);display:flex;align-items:center;justify-content:center;font-size:16px}
+  .brand-name{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:rgba(255,255,255,0.6)}
+  .login-panel-right{padding:48px 40px}
+  .login-header{margin-bottom:32px}
+  .login-title{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;margin-bottom:6px}
+  .login-subtitle{color:var(--text2);font-size:0.85rem}
+  .form-group{margin-bottom:16px}
+  .form-label{display:block;font-size:0.75rem;font-weight:600;color:var(--text2);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px}
+  .form-control{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-size:0.875rem;font-family:inherit;transition:all 0.2s;outline:none}
+  .form-control:focus{border-color:var(--role-color);box-shadow:0 0 0 3px var(--role-glow)}
+  .form-control::placeholder{color:var(--text3)}
+  .btn-login{width:100%;padding:12px;border-radius:10px;background:var(--role-color);color:#1A1408;font-size:0.9rem;font-weight:700;font-family:inherit;border:none;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px}
+  .btn-login:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 8px 24px var(--role-glow)}
+  .btn-login:disabled{opacity:0.7;cursor:not-allowed;transform:none}
+  .alert{padding:10px 14px;border-radius:8px;font-size:0.82rem;margin-bottom:16px;display:none}
+  .alert.show{display:block}
+  .alert-error{background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);color:#F85149}
+  .alert-success{background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);color:#C9A84C}
+  .demo-creds{margin-top:24px;padding:14px;border-radius:10px;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);font-size:0.77rem}
+  .demo-title{color:var(--role-color);font-weight:600;margin-bottom:8px;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase}
+  .demo-item{display:flex;justify-content:space-between;color:var(--text2);margin-bottom:4px}
+  .demo-val{color:var(--text);font-family:monospace;font-size:0.8rem}
+  .loading-ring{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,0,0,0.3);border-top-color:#1A1408;border-radius:50%;animation:spin 0.6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .admin-warning{display:flex;align-items:flex-start;gap:10px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:8px;padding:12px 14px;margin-top:16px;font-size:0.78rem;color:var(--text2)}
+</style>
+</head>
+<body>
+<div class="bg-accent"></div>
+<div class="grid-bg"></div>
+<div class="login-wrapper">
+  <div class="login-panel-left">
+    <div class="panel-content">
+      <a href="index.html" class="back-link">← Back to Home</a>
+      <div class="panel-role-icon">⚙️</div>
+      <div class="panel-title">Admin Control Panel</div>
+      <div class="panel-desc">Full system access to manage all hospital operations, staff, and patient data.</div>
+      <div class="panel-features">
+        <div class="panel-feature"><div class="feature-dot"></div> Manage doctors & patients</div>
+        <div class="panel-feature"><div class="feature-dot"></div> Monitor doctor status in real-time</div>
+        <div class="panel-feature"><div class="feature-dot"></div> Override doctor availability</div>
+        <div class="panel-feature"><div class="feature-dot"></div> View all appointments & logs</div>
+        <div class="panel-feature"><div class="feature-dot"></div> Emergency status management</div>
+      </div>
+    </div>
+    <div class="panel-footer">
+      <div class="hospital-branding">
+        <div class="brand-icon">🏥</div>
+        <div class="brand-name">MedCare Hospital</div>
+      </div>
+    </div>
+  </div>
+  <div class="login-panel-right">
+    <div class="login-header">
+      <div class="login-title">Admin Access</div>
+      <div class="login-subtitle">Secure admin login required</div>
+    </div>
+    <div id="alertBox" class="alert"></div>
+    <form onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label class="form-label">Admin Email</label>
+        <input type="email" id="loginEmail" class="form-control" placeholder="admin@hospital.com" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="loginPassword" class="form-control" placeholder="Admin password" required>
+      </div>
+      <button type="submit" class="btn-login" id="loginBtn">
+        <span id="loginBtnText">Access Control Panel</span>
+      </button>
+    </form>
+    <div class="admin-warning">
+      🔐 This is a restricted area. All admin activities are logged and monitored.
+    </div>
+    <div class="demo-creds">
+      <div class="demo-title">🔑 Demo Admin Credentials</div>
+      <div class="demo-item"><span>Email:</span><span class="demo-val">admin@hospital.com</span></div>
+      <div class="demo-item"><span>Password:</span><span class="demo-val">password</span></div>
+    </div>
+  </div>
+</div>
+<script>
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const txt = document.getElementById('loginBtnText');
+  btn.disabled = true; txt.innerHTML = '<span class="loading-ring"></span>';
+  const alertBox = document.getElementById('alertBox');
+  alertBox.className = 'alert';
+  try {
+    const fd = new FormData();
+    fd.append('action','login');
+    fd.append('email', document.getElementById('loginEmail').value);
+    fd.append('password', document.getElementById('loginPassword').value);
+    fd.append('role','admin');
+    const res = await fetch('php/auth.php',{method:'POST',body:fd});
+    const data = await res.json();
+    if(data.success){
+      alertBox.textContent='Access granted! Redirecting...';
+      alertBox.className='alert show alert-success';
+      setTimeout(()=>window.location.href='admin-dashboard.html',800);
+    } else {
+      alertBox.textContent=data.message||'Login failed';
+      alertBox.className='alert show alert-error';
+      btn.disabled=false; txt.textContent='Access Control Panel';
+    }
+  } catch(err){
+    alertBox.textContent='Connection error.';
+    alertBox.className='alert show alert-error';
+    btn.disabled=false; txt.textContent='Access Control Panel';
+  }
+}
+</script>
+</body>
+</html>

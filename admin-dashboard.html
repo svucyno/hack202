@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — MedCare Hospital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+<style>
+  :root { --role-color: #C9A84C; --role-glow: rgba(201,168,76,0.2); }
+  .sidebar-role-badge { background: rgba(201,168,76,0.15); color: #C9A84C; }
+  .nav-item.active { border-left: 3px solid #C9A84C; background: var(--surface2); color: var(--text); }
+  .doctor-status-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; transition: all 0.2s; }
+  .doctor-status-card:hover { border-color: var(--border2); }
+  .override-btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .override-btn { padding:5px 10px; border-radius:6px; font-size:0.72rem; font-weight:600; cursor:pointer; border:none; font-family:inherit; transition:all 0.2s; }
+  .override-btn.available { background:rgba(63,185,80,0.15); color:#3FB950; border:1px solid rgba(63,185,80,0.3); }
+  .override-btn.busy { background:rgba(248,81,73,0.15); color:#F85149; border:1px solid rgba(248,81,73,0.3); }
+  .override-btn.emergency { background:rgba(219,109,40,0.15); color:#DB6D28; border:1px solid rgba(219,109,40,0.3); }
+  .override-btn.offline { background:rgba(139,148,158,0.15); color:#8B949E; border:1px solid rgba(139,148,158,0.3); }
+  .override-btn:hover { filter:brightness(1.2); }
+  .log-item { display:flex; gap:12px; padding:10px; border-bottom:1px solid var(--border); font-size:0.82rem; }
+  .log-item:last-child { border-bottom:none; }
+  .log-module { padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:600; background:var(--surface2); color:var(--text2); flex-shrink:0; }
+  .log-action { color:var(--text); flex:1; }
+  .log-time { color:var(--text3); font-size:0.72rem; flex-shrink:0; }
+  .section-modules { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+  .module-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; text-align:center; transition:all 0.2s; cursor:pointer; }
+  .module-card:hover { border-color:var(--role-color); transform:translateY(-2px); }
+  .module-icon { font-size:36px; margin-bottom:12px; }
+  .module-title { font-weight:600; margin-bottom:4px; }
+  .module-desc { font-size:0.78rem; color:var(--text2); }
+  .add-doctor-form { display:none; }
+  .add-doctor-form.open { display:block; }
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="sidebar-logo">
+        <div class="sidebar-logo-icon">🏥</div>
+        <div>
+          <div class="sidebar-logo-text">Med<span>Care</span></div>
+          <div class="sidebar-role-badge">Admin Panel</div>
+        </div>
+      </a>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">⚙️</div>
+      <div class="sidebar-name" id="sidebarName">Admin</div>
+      <div class="sidebar-email" style="color:var(--gold)">System Administrator</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span> Dashboard</button>
+      <button class="nav-item" onclick="showPage('doctors',this)"><span class="nav-icon">👨‍⚕️</span> Doctors</button>
+      <button class="nav-item" onclick="showPage('patients',this)"><span class="nav-icon">🧑‍⚕️</span> Patients</button>
+      <button class="nav-item" onclick="showPage('appointments',this)"><span class="nav-icon">📅</span> Appointments</button>
+      <div class="nav-section-label">Monitoring</div>
+      <button class="nav-item" onclick="showPage('status',this)"><span class="nav-icon">🟢</span> Doctor Status</button>
+      <button class="nav-item" onclick="showPage('modules',this)"><span class="nav-icon">🏗️</span> Modules</button>
+      <button class="nav-item" onclick="showPage('logs',this)"><span class="nav-icon">📋</span> Activity Logs</button>
+      <button class="nav-item" onclick="showPage('labreports',this)"><span class="nav-icon">🧪</span> Add Lab Report</button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="logout()"><span>🚪</span> Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="pageTitle">Admin Dashboard</div>
+      <div class="topbar-right">
+        <span style="font-size:0.75rem;color:var(--text2)" id="serverTime"></span>
+        <button class="icon-btn" onclick="refreshAll()" title="Refresh">🔄</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header"><div><div class="stat-value" id="statUsers">0</div><div class="stat-label">Total Users</div></div><div class="stat-icon" style="background:rgba(88,166,255,0.15)">👥</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><div><div class="stat-value" id="statDoctors">0</div><div class="stat-label">Doctors</div></div><div class="stat-icon" style="background:rgba(201,168,76,0.15)">👨‍⚕️</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><div><div class="stat-value" id="statPatients">0</div><div class="stat-label">Patients</div></div><div class="stat-icon" style="background:rgba(63,185,80,0.15)">🧑</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><div><div class="stat-value" id="statAppts">0</div><div class="stat-label">Total Appointments</div></div><div class="stat-icon" style="background:rgba(233,69,96,0.15)">📅</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><div><div class="stat-value" id="statTodayAppts">0</div><div class="stat-label">Today's Appointments</div></div><div class="stat-icon" style="background:rgba(188,140,255,0.15)">📆</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><div><div class="stat-value" id="statRx">0</div><div class="stat-label">Prescriptions Today</div></div><div class="stat-icon" style="background:rgba(219,109,40,0.15)">💊</div></div>
+          </div>
+        </div>
+
+        <!-- REAL-TIME DOCTOR STATUS -->
+        <div class="card" style="margin-bottom:24px">
+          <div class="card-header">
+            <div><div class="card-title">🟢 Live Doctor Status</div><div class="card-subtitle">Real-time monitoring — auto-refreshes every 15s</div></div>
+            <button class="btn btn-ghost btn-sm" onclick="loadDoctorStatuses()">↻ Refresh</button>
+          </div>
+          <div id="doctorStatusGrid" class="grid-auto"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Recent Appointments</div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Patient</th><th>Doctor</th><th>Date/Time</th><th>Status</th></tr></thead>
+                <tbody id="recentApptsTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Recent Activity Logs</div><button class="btn btn-ghost btn-sm" onclick="showPage('logs',null)">View All</button></div>
+            <div id="recentLogs"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOCTORS PAGE -->
+      <div id="page-doctors" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <div class="card-title">Doctors Management</div>
+            <button class="btn btn-primary" onclick="toggleAddDoctor()">+ Add Doctor</button>
+          </div>
+          <div class="add-doctor-form" id="addDoctorForm">
+            <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+              <div class="grid-3">
+                <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="dName" class="form-control" placeholder="Dr. Full Name"></div>
+                <div class="form-group"><label class="form-label">Email</label><input type="email" id="dEmail" class="form-control" placeholder="doctor@hospital.com"></div>
+                <div class="form-group"><label class="form-label">Phone</label><input type="tel" id="dPhone" class="form-control" placeholder="9000000000"></div>
+                <div class="form-group"><label class="form-label">Specialization</label><input type="text" id="dSpec" class="form-control" placeholder="e.g., Cardiology"></div>
+                <div class="form-group"><label class="form-label">Department</label><input type="text" id="dDept" class="form-control" placeholder="e.g., Cardiology"></div>
+                <div class="form-group"><label class="form-label">Qualification</label><input type="text" id="dQual" class="form-control" placeholder="MBBS, MD..."></div>
+                <div class="form-group"><label class="form-label">Room Number</label><input type="text" id="dRoom" class="form-control" placeholder="101"></div>
+                <div class="form-group"><label class="form-label">Consultation Fee (₹)</label><input type="number" id="dFee" class="form-control" placeholder="500"></div>
+                <div class="form-group"><label class="form-label">Experience (Years)</label><input type="number" id="dExp" class="form-control" placeholder="5"></div>
+              </div>
+              <div style="display:flex;gap:12px">
+                <button class="btn btn-primary" onclick="addDoctor()">Add Doctor</button>
+                <button class="btn btn-ghost" onclick="toggleAddDoctor()">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Doctor</th><th>Code</th><th>Specialization</th><th>Room</th><th>Status</th><th>Appointments</th><th>Actions</th></tr></thead>
+              <tbody id="doctorsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PATIENTS PAGE -->
+      <div id="page-patients" style="display:none">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Patients Management</div><span style="font-size:0.78rem;color:var(--text2)" id="patientCount"></span></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Patient</th><th>Code</th><th>Blood Group</th><th>Phone</th><th>Gender</th><th>Appointments</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="patientsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- APPOINTMENTS PAGE -->
+      <div id="page-appointments" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">All Appointments</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="loadAllAppointments('today')">Today</button>
+              <button class="btn btn-ghost btn-sm" onclick="loadAllAppointments('upcoming')">Upcoming</button>
+              <button class="btn btn-ghost btn-sm" onclick="loadAllAppointments('all')">All</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Code</th><th>Patient</th><th>Doctor</th><th>Date & Time</th><th>Type</th><th>Status</th></tr></thead>
+              <tbody id="adminApptsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOCTOR STATUS PAGE -->
+      <div id="page-status" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><div><div class="card-title">Doctor Status Monitor & Override</div><div class="card-subtitle">Click any status button to override a doctor's status</div></div></div>
+        </div>
+        <div id="fullDoctorStatus" class="grid-auto"></div>
+      </div>
+
+      <!-- MODULES PAGE -->
+      <div id="page-modules" style="display:none">
+        <div class="section-modules">
+          <div class="module-card">
+            <div class="module-icon">🧪</div>
+            <div class="module-title">Laboratory</div>
+            <div class="module-desc">Manage lab tests, view reports, add results</div>
+            <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="showPage('labreports',null)">Manage Lab</button>
+          </div>
+          <div class="module-card">
+            <div class="module-icon">💊</div>
+            <div class="module-title">Pharmacy</div>
+            <div class="module-desc">View dispensed medicines, pharmacy records</div>
+            <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="loadPharmacy()">Manage Pharmacy</button>
+          </div>
+          <div class="module-card">
+            <div class="module-icon">🏥</div>
+            <div class="module-title">Reception</div>
+            <div class="module-desc">Patient check-in, appointment management</div>
+            <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="showPage('appointments',null)">View Reception</button>
+          </div>
+        </div>
+        <div class="card" id="moduleContent">
+          <div class="empty-state"><div class="empty-state-icon">🏗️</div><div class="empty-state-title">Select a module above</div></div>
+        </div>
+      </div>
+
+      <!-- LOGS PAGE -->
+      <div id="page-logs" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Activity Logs</div>
+            <select id="logModuleFilter" class="form-control" style="width:160px" onchange="loadLogs(this.value)">
+              <option value="">All modules</option>
+              <option value="auth">Auth</option>
+              <option value="appointments">Appointments</option>
+              <option value="prescriptions">Prescriptions</option>
+              <option value="admin">Admin</option>
+              <option value="doctor_status">Doctor Status</option>
+            </select>
+          </div>
+          <div id="logsContainer"></div>
+        </div>
+      </div>
+
+      <!-- ADD LAB REPORT -->
+      <div id="page-labreports" style="display:none">
+        <div style="max-width:640px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Add Lab Report</div></div>
+            <form onsubmit="submitLabReport(event)">
+              <div class="grid-2">
+                <div class="form-group"><label class="form-label">Patient Code</label><input type="text" id="labPatCode" class="form-control" placeholder="PAT0001" required></div>
+                <div class="form-group"><label class="form-label">Doctor Code (optional)</label><input type="text" id="labDocCode" class="form-control" placeholder="DOC001"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Test Name</label><input type="text" id="labTest" class="form-control" placeholder="e.g., Complete Blood Count" required></div>
+              <div class="grid-2">
+                <div class="form-group"><label class="form-label">Category</label><select id="labCat" class="form-control"><option>Hematology</option><option>Biochemistry</option><option>Microbiology</option><option>Radiology</option><option>Pathology</option><option>Other</option></select></div>
+                <div class="form-group"><label class="form-label">Technician Name</label><input type="text" id="labTech" class="form-control" placeholder="Technician name"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Result</label><textarea id="labResult" class="form-control" rows="3" placeholder="Enter test results..."></textarea></div>
+              <div class="form-group"><label class="form-label">Normal Range</label><input type="text" id="labRange" class="form-control" placeholder="e.g., 70-100 mg/dL"></div>
+              <div class="form-group"><label class="form-label">Remarks</label><textarea id="labRemarks" class="form-control" rows="2" placeholder="Doctor's remarks..."></textarea></div>
+              <button type="submit" class="btn btn-primary btn-lg">🧪 Submit Lab Report</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+const BASE = 'php';
+
+async function checkAuth() {
+  try {
+    const res = await fetch(`${BASE}/auth.php?action=get_session`);
+    const data = await res.json();
+    if (!data.authenticated || data.user.role !== 'admin') { window.location.href = 'admin-login.html'; return; }
+    document.getElementById('sidebarName').textContent = data.user.name;
+    loadDashboard();
+    startClock();
+    startAutoRefresh();
+  } catch(e) { window.location.href = 'admin-login.html'; }
+}
+
+function startClock() {
+  const update = () => {
+    document.getElementById('serverTime').textContent = new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  };
+  update(); setInterval(update, 1000);
+}
+
+function startAutoRefresh() {
+  setInterval(() => {
+    const current = document.getElementById('pageTitle').textContent;
+    if (current === 'Admin Dashboard' || current === 'Doctor Status') loadDoctorStatuses();
+  }, 15000);
+}
+
+async function loadDashboard() {
+  try {
+    const res = await fetch(`${BASE}/admin_api.php?action=get_dashboard`);
+    const data = await res.json();
+    if (!data.success) return;
+    const d = data.data;
+    document.getElementById('statUsers').textContent = d.total_users;
+    document.getElementById('statDoctors').textContent = d.total_doctors;
+    document.getElementById('statPatients').textContent = d.total_patients;
+    document.getElementById('statAppts').textContent = d.total_appointments;
+    document.getElementById('statTodayAppts').textContent = d.today_appointments;
+    document.getElementById('statRx').textContent = d.today_prescriptions;
+    renderDoctorStatusCards(d.doctor_statuses, 'doctorStatusGrid');
+    renderRecentAppointments(d.recent_appointments);
+    renderRecentLogs(d.recent_logs);
+  } catch(e) {}
+}
+
+function renderDoctorStatusCards(statuses, containerId) {
+  const container = document.getElementById(containerId);
+  if (!statuses?.length) { container.innerHTML = '<div class="empty-state"><div class="empty-state-title">No doctors found</div></div>'; return; }
+  container.innerHTML = statuses.map(d => `
+    <div class="doctor-status-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="width:40px;height:40px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">👨‍⚕️</div>
+        <div>
+          <div style="font-weight:600;font-size:0.88rem">${d.name}</div>
+          <div style="font-size:0.75rem;color:var(--text2)">${d.specialization || 'N/A'}</div>
+        </div>
+        <div style="margin-left:auto">
+          <span class="status-indicator status-${d.status || 'offline'}">
+            <span class="status-dot"></span>${d.status || 'offline'}
+          </span>
+        </div>
+      </div>
+      ${d.status_note ? `<div style="font-size:0.75rem;color:var(--text3);margin-bottom:6px;font-style:italic">${d.status_note}</div>` : ''}
+      <div style="font-size:0.7rem;color:var(--text3);margin-bottom:8px">Updated: ${d.status_updated ? timeAgo(d.status_updated) : 'N/A'}</div>
+      <div class="override-btns">
+        <span style="font-size:0.68rem;color:var(--text3);line-height:28px">Override:</span>
+        <button class="override-btn available" onclick="overrideStatus(${d.id},'available','')">✅ Available</button>
+        <button class="override-btn busy" onclick="overrideStatus(${d.id},'busy','')">🔴 Busy</button>
+        <button class="override-btn emergency" onclick="overrideStatus(${d.id},'emergency','')">🚨 Emergency</button>
+        <button class="override-btn offline" onclick="overrideStatus(${d.id},'offline','')">⚫ Offline</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderRecentAppointments(appts) {
+  const tbody = document.getElementById('recentApptsTable');
+  if (!appts?.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No appointments</td></tr>'; return; }
+  tbody.innerHTML = appts.map(a => `
+    <tr>
+      <td><div style="font-weight:500;font-size:0.85rem">${a.patient_name}</div></td>
+      <td><div style="font-size:0.82rem">Dr. ${a.doctor_name}</div></td>
+      <td><div style="font-size:0.8rem">${formatDate(a.appointment_date)}</div><div style="font-size:0.72rem;color:var(--text2)">${formatTime(a.appointment_time)}</div></td>
+      <td>${statusBadge(a.status)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderRecentLogs(logs) {
+  const container = document.getElementById('recentLogs');
+  if (!logs?.length) { container.innerHTML = '<div class="empty-state"><div class="empty-state-title">No logs</div></div>'; return; }
+  container.innerHTML = logs.map(l => `
+    <div class="log-item">
+      <span class="log-module">${l.module || 'system'}</span>
+      <span class="log-action">${l.name ? `<strong>${l.name}</strong> · ` : ''}${l.action}</span>
+      <span class="log-time">${timeAgo(l.created_at)}</span>
+    </div>
+  `).join('');
+}
+
+async function loadDoctorStatuses() {
+  try {
+    const res = await fetch(`${BASE}/admin_api.php?action=get_doctors`);
+    const data = await res.json();
+    if (data.success) {
+      const statuses = data.doctors.map(d => ({...d, id: d.id}));
+      renderDoctorStatusCards(statuses, 'doctorStatusGrid');
+      if (document.getElementById('page-status').style.display !== 'none') {
+        renderDoctorStatusCards(statuses, 'fullDoctorStatus');
+      }
+    }
+  } catch(e) {}
+}
+
+async function overrideStatus(doctorId, status, note) {
+  if (status === 'emergency') {
+    note = prompt('Reason for emergency override (optional):') || '';
+  }
+  try {
+    const fd = new FormData();
+    fd.append('action','override_doctor_status');
+    fd.append('doctor_id', doctorId);
+    fd.append('status', status);
+    fd.append('note', note);
+    const res = await fetch(`${BASE}/admin_api.php`, { method:'POST', body:fd });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`✅ Doctor status overridden to ${status}`, status === 'emergency' ? 'warning' : 'success');
+      if (status === 'emergency') showToast('⚠️ Emergency notifications sent to affected patients', 'warning');
+      loadDoctorStatuses();
+    } else showToast(data.message, 'error');
+  } catch(e) { showToast('Override failed', 'error'); }
+}
+
+function showPage(page, btn) {
+  document.querySelectorAll('[id^=page-]').forEach(p => p.style.display = 'none');
+  document.getElementById(`page-${page}`).style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const titles = { dashboard:'Admin Dashboard', doctors:'Doctors Management', patients:'Patients Management', appointments:'All Appointments', status:'Doctor Status Monitor', modules:'System Modules', logs:'Activity Logs', labreports:'Add Lab Report' };
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+
+  if (page === 'doctors') loadDoctors();
+  else if (page === 'patients') loadPatients();
+  else if (page === 'appointments') loadAllAppointments('today');
+  else if (page === 'status') loadFullDoctorStatus();
+  else if (page === 'logs') loadLogs('');
+}
+
+async function loadDoctors() {
+  const tbody = document.getElementById('doctorsTable');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px"><div class="loading-spinner" style="margin:auto"></div></td></tr>';
+  try {
+    const res = await fetch(`${BASE}/admin_api.php?action=get_doctors`);
+    const data = await res.json();
+    if (!data.doctors?.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">No doctors found</td></tr>'; return; }
+    tbody.innerHTML = data.doctors.map(d => `
+      <tr>
+        <td><div style="font-weight:500">Dr. ${d.name}</div><div style="font-size:0.75rem;color:var(--text2)">${d.email}</div></td>
+        <td><code style="font-size:0.78rem">${d.doctor_code}</code></td>
+        <td>${d.specialization || 'N/A'}</td>
+        <td>Room ${d.room_number || 'N/A'}</td>
+        <td>
+          <span class="status-indicator status-${d.current_status || 'offline'}">
+            <span class="status-dot"></span>${d.current_status || 'offline'}
+          </span>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <button class="override-btn available" onclick="overrideStatus(${d.id},'available','')">Available</button>
+            <button class="override-btn busy" onclick="overrideStatus(${d.id},'busy','')">Busy</button>
+            <button class="override-btn emergency" onclick="overrideStatus(${d.id},'emergency','')">Emergency</button>
+          </div>
+        </td>
+        <td>${d.total_appointments}</td>
+        <td>
+          <button class="btn btn-${d.is_active ? 'danger' : 'primary'} btn-sm" onclick="toggleUser(${d.user_id},${d.is_active ? 0 : 1})">${d.is_active ? 'Disable' : 'Enable'}</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch(e) {}
+}
+
+async function loadPatients() {
+  const tbody = document.getElementById('patientsTable');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px"><div class="loading-spinner" style="margin:auto"></div></td></tr>';
+  try {
+    const res = await fetch(`${BASE}/admin_api.php?action=get_patients`);
+    const data = await res.json();
+    if (data.patients) {
+      document.getElementById('patientCount').textContent = `${data.patients.length} patients`;
+      tbody.innerHTML = data.patients.map(p => `
+        <tr>
+          <td><div style="font-weight:500">${p.name}</div><div style="font-size:0.75rem;color:var(--text2)">${p.email}</div></td>
+          <td><code style="font-size:0.78rem">${p.patient_code}</code></td>
+          <td><span style="font-weight:700;color:var(--red)">${p.blood_group || 'N/A'}</span></td>
+          <td>${p.phone}</td>
+          <td style="text-transform:capitalize">${p.gender || 'N/A'}</td>
+          <td>${p.total_appointments}</td>
+          <td><span class="badge ${p.is_active ? 'badge-green' : 'badge-red'}">${p.is_active ? 'Active' : 'Inactive'}</span></td>
+          <td><button class="btn btn-${p.is_active ? 'danger' : 'primary'} btn-sm" onclick="toggleUser(${p.user_id||''},${p.is_active ? 0 : 1})">${p.is_active ? 'Disable' : 'Enable'}</button></td>
+        </tr>
+      `).join('');
+    }
+  } catch(e) {}
+}
+
+async function loadAllAppointments(filter = 'today') {
+  const tbody = document.getElementById('adminApptsTable');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px"><div class="loading-spinner" style="margin:auto"></div></td></tr>';
+  try {
+    const res = await fetch(`${BASE}/admin_api.php?action=get_appointments&filter=${filter}`);
+    const data = await res.json();
+    if (!data.appointments?.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text2)">No appointments found</td></tr>'; return; }
+    tbody.innerHTML = data.appointments.map(a => `
+      <tr>
+        <td><code style="font-size:0.75rem">${a.appointment_code}</code></td>
+        <td><div style="font-weight:500">${a.patient_name}</div><div style="font-size:0.72rem;color:var(--text2)">${a.patient_code}</div></td>
+        <td><div style="font-weight:500">Dr. ${a.doctor_name}</div><div style="font-size:0.72rem;color:var(--text2)">${a.specialization}</div></td>
+        <td><div>${formatDate(a.appointment_date)}</div><div style="font-size:0.72rem;color:var(--text2)">${formatTime(a.appointment_time)}</div></td>
+        <td><span class="badge badge-blue">${a.type.replace('_',' ')}</span></td>
+        <td>${statusBadge(a.status)}</td>
+      </tr>
+    `).join('');
+  } catch(e) {}
+}
+
+async function loadFullDoctorStatus() {
+  const container = document.getElementById('fullDoctorStatus');
+  container.innerHTML = '<div style="text-align:center;padding:24px"><div class="loading-spinner" style="margin:auto"></div></div>';
+  try {
+    const res = await fetch(`${BASE}/admin_api.php?action=get_doctors`);
+    const data = await res.json();
+    if (data.success) renderDoctorStatusCards(data.doctors, 'fullDoctorStatus');
+  } catch(e) {}
+}
+
+async function loadLogs(module = '') {
+  const container = document.getElementById('logsContainer');
+  container.innerHTML = '<div style="text-align:center;padding:24px"><div class="loading-spinner" style="margin:auto"></div></div>';
+  try {
+    const url = `${BASE}/admin_api.php?action=get_logs&limit=100${module ? '&module='+module : ''}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.logs?.length) { container.innerHTML = '<div class="empty-state"><div class="empty-state-title">No logs found</div></div>'; return; }
+    container.innerHTML = data.logs.map(l => `
+      <div class="log-item">
+        <span class="log-module">${l.module || 'system'}</span>
+        <span style="font-size:0.72rem;color:var(--text3);flex-shrink:0;width:80px">${l.role ? `[${l.role}]` : ''}</span>
+        <span class="log-action">${l.name ? `<strong>${l.name}</strong> · ` : ''}${l.action}${l.details ? ` <span style="color:var(--text3)">— ${l.details}</span>` : ''}</span>
+        <span class="log-time">${timeAgo(l.created_at)}</span>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+function toggleAddDoctor() {
+  const form = document.getElementById('addDoctorForm');
+  form.classList.toggle('open');
+}
+
+async function addDoctor() {
+  const fd = new FormData();
+  fd.append('action','add_doctor');
+  ['name','email','phone','specialization','department','qualification','room_number','consultation_fee','experience_years'].forEach(f => {
+    const el = document.getElementById('d'+f.charAt(0).toUpperCase()+f.slice(1).replace(/_([a-z])/g,(_,c)=>c.toUpperCase()));
+    if (el) fd.append(f, el.value);
+  });
+  // Fix field mappings
+  fd.set('name', document.getElementById('dName').value);
+  fd.set('email', document.getElementById('dEmail').value);
+  fd.set('phone', document.getElementById('dPhone').value);
+  fd.set('specialization', document.getElementById('dSpec').value);
+  fd.set('department', document.getElementById('dDept').value);
+  fd.set('qualification', document.getElementById('dQual').value);
+  fd.set('room_number', document.getElementById('dRoom').value);
+  fd.set('consultation_fee', document.getElementById('dFee').value);
+  fd.set('experience_years', document.getElementById('dExp').value);
+  try {
+    const res = await fetch(`${BASE}/admin_api.php`, { method:'POST', body:fd });
+    const data = await res.json();
+    if (data.success) { showToast(`✅ Doctor added! Code: ${data.code}`, 'success'); toggleAddDoctor(); loadDoctors(); }
+    else showToast(data.message, 'error');
+  } catch(e) { showToast('Error adding doctor', 'error'); }
+}
+
+async function toggleUser(userId, active) {
+  const fd = new FormData();
+  fd.append('action','toggle_user'); fd.append('user_id',userId); fd.append('active',active);
+  const res = await fetch(`${BASE}/admin_api.php`, { method:'POST', body:fd });
+  const data = await res.json();
+  if (data.success) { showToast(data.message, 'success'); loadDoctors(); loadPatients(); }
+  else showToast(data.message, 'error');
+}
+
+async function submitLabReport(e) {
+  e.preventDefault();
+  const fd = new FormData();
+  fd.append('action','add_lab_report');
+  // Resolve patient ID from code
+  const patCode = document.getElementById('labPatCode').value.trim();
+  fd.append('patient_code', patCode);
+  fd.append('test_name', document.getElementById('labTest').value);
+  fd.append('category', document.getElementById('labCat').value);
+  fd.append('result', document.getElementById('labResult').value);
+  fd.append('normal_range', document.getElementById('labRange').value);
+  fd.append('remarks', document.getElementById('labRemarks').value);
+  fd.append('technician', document.getElementById('labTech').value);
+
+  // Need to get patient_id from patient_code first
+  // For simplicity, pass code and let backend resolve
+  try {
+    // First find patient
+    const searchRes = await fetch(`${BASE}/admin_api.php?action=get_patients`);
+    const searchData = await searchRes.json();
+    const patient = searchData.patients?.find(p => p.patient_code === patCode.toUpperCase());
+    if (!patient) { showToast('Patient code not found', 'error'); return; }
+    fd.set('patient_id', patient.id);
+
+    // Doctor code resolution
+    const docCode = document.getElementById('labDocCode').value.trim();
+    if (docCode) {
+      const docRes = await fetch(`${BASE}/admin_api.php?action=get_doctors`);
+      const docData = await docRes.json();
+      const doc = docData.doctors?.find(d => d.doctor_code === docCode.toUpperCase());
+      if (doc) fd.append('doctor_id', doc.id);
+    }
+
+    const res = await fetch(`${BASE}/admin_api.php`, { method:'POST', body:fd });
+    const data = await res.json();
+    if (data.success) { showToast(`✅ Lab report added! Code: ${data.code}`, 'success'); e.target.reset(); }
+    else showToast(data.message, 'error');
+  } catch(e) { showToast('Error submitting lab report', 'error'); }
+}
+
+async function loadPharmacy() {
+  showPage('modules', null);
+  try {
+    const res = await fetch(`${BASE}/admin_api.php?action=get_patients`);
+    document.getElementById('moduleContent').innerHTML = `
+      <div class="card-header"><div class="card-title">💊 Pharmacy Records</div></div>
+      <p style="color:var(--text2);padding:20px">Pharmacy records module — shows dispensed medicines.<br>
+      To view pharmacy records, connect to the pharmacy_records table.</p>`;
+  } catch(e) {}
+}
+
+function refreshAll() { loadDashboard(); loadDoctorStatuses(); showToast('Data refreshed', 'success'); }
+
+async function logout() {
+  const fd = new FormData(); fd.append('action','logout');
+  await fetch(`${BASE}/auth.php`, { method:'POST', body:fd });
+  window.location.href = 'index.html';
+}
+
+// HELPERS
+function formatDate(d) { if(!d) return 'N/A'; return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+function formatTime(t) { if(!t) return ''; const [h,m]=t.split(':'); const hr=parseInt(h); return `${hr>12?hr-12:hr||12}:${m} ${hr>=12?'PM':'AM'}`; }
+function timeAgo(dateStr) { const diff=(new Date()-new Date(dateStr))/1000; if(diff<60) return 'Just now'; if(diff<3600) return `${Math.floor(diff/60)}m ago`; if(diff<86400) return `${Math.floor(diff/3600)}h ago`; return `${Math.floor(diff/86400)}d ago`; }
+function statusBadge(s) { const m={pending:'badge-yellow',confirmed:'badge-blue',active:'badge-green',completed:'badge-gray',cancelled:'badge-red',postponed:'badge-orange'}; return `<span class="badge ${m[s]||'badge-gray'}">${(s||'').replace('_',' ')}</span>`; }
+function showToast(msg, type='info') {
+  const icons={success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'};
+  const el=document.createElement('div'); el.className=`toast ${type}`;
+  el.innerHTML=`<span class="toast-icon">${icons[type]||'ℹ️'}</span><span class="toast-text">${msg}</span><span class="toast-close" onclick="this.parentElement.remove()">×</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(()=>el.remove(),4500);
+}
+
+checkAuth();
+</script>
+</body>
+</html>
