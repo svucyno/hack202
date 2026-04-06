@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient Login — MedCare Hospital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --role-color: #3FB950;
+    --role-glow: rgba(63,185,80,0.3);
+    --bg: #0D1117; --surface: #161B22; --surface2: #1C2128;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+    --text: #E6EDF3; --text2: #8B949E; --text3: #484F58;
+    --accent: #E94560; --green: #3FB950; --blue: #58A6FF;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 20px; overflow: hidden;
+  }
+  .bg-accent {
+    position: fixed; inset: 0; z-index: 0;
+    background: radial-gradient(ellipse 50% 50% at 30% 50%, rgba(63,185,80,0.08) 0%, transparent 60%);
+  }
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+  .login-wrapper {
+    position: relative; z-index: 10;
+    width: 100%; max-width: 900px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 24px; overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(63,185,80,0.1);
+    animation: wrapper-in 0.5s ease;
+  }
+  @keyframes wrapper-in {
+    from { opacity: 0; transform: scale(0.95) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @media (max-width: 640px) {
+    .login-wrapper { grid-template-columns: 1fr; }
+    .login-panel-left { display: none; }
+  }
+  /* LEFT PANEL */
+  .login-panel-left {
+    background: linear-gradient(135deg, #0A2018 0%, #0D2B20 50%, #112E24 100%);
+    padding: 48px 40px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .panel-decoration {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 70%, rgba(63,185,80,0.15) 0%, transparent 60%);
+  }
+  .panel-content { position: relative; z-index: 1; }
+  .back-link {
+    display: flex; align-items: center; gap: 6px;
+    color: rgba(255,255,255,0.4); text-decoration: none;
+    font-size: 0.78rem; font-weight: 500; letter-spacing: 0.5px;
+    transition: color 0.2s; margin-bottom: 48px;
+  }
+  .back-link:hover { color: var(--role-color); }
+  .panel-role-icon {
+    width: 72px; height: 72px;
+    background: rgba(63,185,80,0.15);
+    border: 1px solid rgba(63,185,80,0.3);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; margin-bottom: 24px;
+  }
+  .panel-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem; font-weight: 700; color: white;
+    line-height: 1.2; margin-bottom: 12px;
+  }
+  .panel-desc { color: rgba(255,255,255,0.45); font-size: 0.85rem; line-height: 1.7; }
+  .panel-features { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; }
+  .panel-feature {
+    display: flex; align-items: center; gap: 10px;
+    color: rgba(255,255,255,0.5); font-size: 0.82rem;
+  }
+  .feature-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--role-color); flex-shrink: 0; }
+  .panel-footer { position: relative; z-index: 1; }
+  .hospital-branding { display: flex; align-items: center; gap: 8px; }
+  .brand-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, #E94560, #C9A84C);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .brand-name { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: rgba(255,255,255,0.6); }
+  /* RIGHT PANEL */
+  .login-panel-right { padding: 48px 40px; }
+  .login-header { margin-bottom: 32px; }
+  .login-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+  .login-subtitle { color: var(--text2); font-size: 0.85rem; }
+  /* TABS */
+  .auth-tabs {
+    display: flex; gap: 0; margin-bottom: 28px;
+    background: var(--surface2); border-radius: 10px; padding: 4px;
+  }
+  .auth-tab {
+    flex: 1; padding: 8px; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600;
+    background: none; border: none; color: var(--text2);
+    cursor: pointer; transition: all 0.2s; font-family: inherit;
+  }
+  .auth-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  /* FORM */
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block; font-size: 0.75rem; font-weight: 600;
+    color: var(--text2); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px;
+  }
+  .form-control {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 11px 14px; color: var(--text);
+    font-size: 0.875rem; font-family: inherit; transition: all 0.2s; outline: none;
+  }
+  .form-control:focus { border-color: var(--role-color); box-shadow: 0 0 0 3px var(--role-glow); }
+  .form-control::placeholder { color: var(--text3); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn-login {
+    width: 100%; padding: 12px; border-radius: 10px;
+    background: var(--role-color); color: white;
+    font-size: 0.9rem; font-weight: 600; font-family: inherit;
+    border: none; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 20px;
+  }
+  .btn-login:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 8px 24px var(--role-glow); }
+  .btn-login:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+  .divider-text {
+    text-align: center; color: var(--text3); font-size: 0.75rem;
+    margin: 16px 0; position: relative;
+  }
+  .divider-text::before, .divider-text::after {
+    content: ''; position: absolute; top: 50%; width: 40%;
+    height: 1px; background: var(--border);
+  }
+  .divider-text::before { left: 0; } .divider-text::after { right: 0; }
+  .otp-btn {
+    width: 100%; padding: 12px; border-radius: 10px;
+    background: none; border: 1px solid var(--border2); color: var(--text2);
+    font-size: 0.85rem; font-weight: 500; font-family: inherit;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .otp-btn:hover { border-color: var(--role-color); color: var(--text); }
+  /* OTP SECTION */
+  .otp-section { display: none; }
+  .otp-section.active { display: block; }
+  .otp-input-group {
+    display: flex; gap: 8px; justify-content: center; margin: 16px 0;
+  }
+  .otp-digit {
+    width: 48px; height: 52px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; text-align: center;
+    font-size: 1.4rem; font-weight: 700; color: var(--text);
+    outline: none; transition: all 0.2s; font-family: inherit;
+  }
+  .otp-digit:focus { border-color: var(--role-color); box-shadow: 0 0 0 3px var(--role-glow); }
+  .demo-creds {
+    margin-top: 24px; padding: 14px; border-radius: 10px;
+    background: rgba(63,185,80,0.05); border: 1px solid rgba(63,185,80,0.15);
+    font-size: 0.77rem;
+  }
+  .demo-title { color: var(--role-color); font-weight: 600; margin-bottom: 8px; font-size: 0.72rem; letter-spacing: 1px; text-transform: uppercase; }
+  .demo-item { display: flex; justify-content: space-between; color: var(--text2); margin-bottom: 4px; }
+  .demo-val { color: var(--text); font-family: monospace; font-size: 0.8rem; }
+  /* Alert */
+  .alert {
+    padding: 10px 14px; border-radius: 8px; font-size: 0.82rem;
+    margin-bottom: 16px; display: none;
+  }
+  .alert.show { display: block; }
+  .alert-error { background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: #F85149; }
+  .alert-success { background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); color: #3FB950; }
+  .loading-ring {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+    border-radius: 50%; animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="bg-accent"></div>
+<div class="grid-bg"></div>
+
+<div class="login-wrapper">
+  <!-- LEFT PANEL -->
+  <div class="login-panel-left">
+    <div class="panel-content">
+      <a href="index.html" class="back-link">← Back to Home</a>
+      <div class="panel-role-icon">🧑‍⚕️</div>
+      <div class="panel-title">Patient Portal</div>
+      <div class="panel-desc">Access your complete medical records, appointments, and health history in one place.</div>
+      <div class="panel-features">
+        <div class="panel-feature"><div class="feature-dot"></div> Book & manage appointments</div>
+        <div class="panel-feature"><div class="feature-dot"></div> View lab reports & prescriptions</div>
+        <div class="panel-feature"><div class="feature-dot"></div> Download prescriptions as PDF</div>
+        <div class="panel-feature"><div class="feature-dot"></div> Receive real-time notifications</div>
+        <div class="panel-feature"><div class="feature-dot"></div> Get notified when doctor is available</div>
+      </div>
+    </div>
+    <div class="panel-footer">
+      <div class="hospital-branding">
+        <div class="brand-icon">🏥</div>
+        <div class="brand-name">MedCare Hospital</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="login-panel-right">
+    <div class="login-header">
+      <div class="login-title">Welcome Back</div>
+      <div class="login-subtitle">Sign in to access your patient dashboard</div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('register')">Register</button>
+      <button class="auth-tab" onclick="switchTab('otp')">OTP Login</button>
+    </div>
+
+    <div id="alertBox" class="alert"></div>
+
+    <!-- LOGIN FORM -->
+    <div id="loginTab">
+      <form onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="loginEmail" class="form-control" placeholder="your@email.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="loginPassword" class="form-control" placeholder="Enter password" required>
+        </div>
+        <button type="submit" class="btn-login" id="loginBtn">
+          <span id="loginBtnText">Sign In</span>
+        </button>
+      </form>
+
+      <div class="demo-creds">
+        <div class="demo-title">🔑 Demo Credentials</div>
+        <div class="demo-item"><span>Email:</span><span class="demo-val">suresh@gmail.com</span></div>
+        <div class="demo-item"><span>Password:</span><span class="demo-val">password</span></div>
+        <div class="demo-item"><span>Also try:</span><span class="demo-val">lakshmi@gmail.com</span></div>
+      </div>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="registerTab" style="display:none">
+      <form onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="regName" class="form-control" placeholder="Your full name" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="regEmail" class="form-control" placeholder="email@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="tel" id="regPhone" class="form-control" placeholder="9876543210" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date of Birth</label>
+            <input type="date" id="regDob" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Gender</label>
+            <select id="regGender" class="form-control">
+              <option value="">Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Blood Group</label>
+            <select id="regBlood" class="form-control">
+              <option value="">Select</option>
+              <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+              <option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="regPassword" class="form-control" placeholder="Min 6 chars" required>
+          </div>
+        </div>
+        <button type="submit" class="btn-login" id="regBtn">
+          <span id="regBtnText">Create Account</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- OTP FORM -->
+    <div id="otpTab" style="display:none">
+      <div id="otpStep1">
+        <div class="form-group">
+          <label class="form-label">Phone / Email</label>
+          <input type="text" id="otpContact" class="form-control" placeholder="Phone number or email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Send via</label>
+          <select id="otpType" class="form-control">
+            <option value="phone">SMS (Phone)</option>
+            <option value="email">Email</option>
+          </select>
+        </div>
+        <button class="btn-login" onclick="sendOTP()">
+          <span id="sendOtpText">Send OTP</span>
+        </button>
+      </div>
+
+      <div id="otpStep2" style="display:none">
+        <p style="color:var(--text2); font-size:0.85rem; margin-bottom:16px; text-align:center">Enter the 6-digit OTP sent to your contact</p>
+        <div class="otp-input-group">
+          <input type="text" class="otp-digit" maxlength="1" id="d1">
+          <input type="text" class="otp-digit" maxlength="1" id="d2">
+          <input type="text" class="otp-digit" maxlength="1" id="d3">
+          <input type="text" class="otp-digit" maxlength="1" id="d4">
+          <input type="text" class="otp-digit" maxlength="1" id="d5">
+          <input type="text" class="otp-digit" maxlength="1" id="d6">
+        </div>
+        <button class="btn-login" onclick="verifyOTP()">Verify & Login</button>
+        <p style="text-align:center; margin-top:12px"><a href="#" onclick="document.getElementById('otpStep1').style.display='block'; document.getElementById('otpStep2').style.display='none'" style="color:var(--text2); font-size:0.8rem">← Change contact</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = 'php';
+let otpUserId = null;
+
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['login','register','otp'][i] === tab);
+  });
+  document.getElementById('loginTab').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('registerTab').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('otpTab').style.display = tab === 'otp' ? 'block' : 'none';
+  hideAlert();
+}
+
+function showAlert(msg, type = 'error') {
+  const el = document.getElementById('alertBox');
+  el.textContent = msg;
+  el.className = `alert show alert-${type}`;
+}
+function hideAlert() {
+  document.getElementById('alertBox').className = 'alert';
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const txt = document.getElementById('loginBtnText');
+  btn.disabled = true;
+  txt.innerHTML = '<span class="loading-ring"></span>';
+  hideAlert();
+  try {
+    const fd = new FormData();
+    fd.append('action', 'login');
+    fd.append('email', document.getElementById('loginEmail').value);
+    fd.append('password', document.getElementById('loginPassword').value);
+    fd.append('role', 'patient');
+    const res = await fetch(`${BASE}/auth.php`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      showAlert('Login successful! Redirecting...', 'success');
+      setTimeout(() => window.location.href = 'patient-dashboard.html', 800);
+    } else {
+      showAlert(data.message || 'Login failed');
+      btn.disabled = false; txt.textContent = 'Sign In';
+    }
+  } catch(err) {
+    showAlert('Connection error. Please try again.');
+    btn.disabled = false; txt.textContent = 'Sign In';
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const btn = document.getElementById('regBtn');
+  const txt = document.getElementById('regBtnText');
+  btn.disabled = true; txt.innerHTML = '<span class="loading-ring"></span>';
+  hideAlert();
+  try {
+    const fd = new FormData();
+    fd.append('action', 'register');
+    fd.append('name', document.getElementById('regName').value);
+    fd.append('email', document.getElementById('regEmail').value);
+    fd.append('phone', document.getElementById('regPhone').value);
+    fd.append('password', document.getElementById('regPassword').value);
+    fd.append('dob', document.getElementById('regDob').value);
+    fd.append('gender', document.getElementById('regGender').value);
+    fd.append('blood_group', document.getElementById('regBlood').value);
+    const res = await fetch(`${BASE}/auth.php`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      showAlert(data.message, 'success');
+      setTimeout(() => switchTab('login'), 1500);
+    } else {
+      showAlert(data.message || 'Registration failed');
+    }
+  } catch(err) { showAlert('Connection error'); }
+  btn.disabled = false; txt.textContent = 'Create Account';
+}
+
+async function sendOTP() {
+  const contact = document.getElementById('otpContact').value;
+  const type = document.getElementById('otpType').value;
+  if (!contact) return showAlert('Enter phone or email');
+  document.getElementById('sendOtpText').innerHTML = '<span class="loading-ring"></span>';
+  try {
+    const fd = new FormData();
+    fd.append('action', 'send_otp');
+    fd.append('contact', contact);
+    fd.append('type', type);
+    const res = await fetch(`${BASE}/auth.php`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      otpUserId = data.user_id;
+      document.getElementById('otpStep1').style.display = 'none';
+      document.getElementById('otpStep2').style.display = 'block';
+      showAlert('OTP sent successfully!', 'success');
+      setupOTPInputs();
+    } else { showAlert(data.message); }
+  } catch(e) { showAlert('Error sending OTP'); }
+  document.getElementById('sendOtpText').textContent = 'Send OTP';
+}
+
+function setupOTPInputs() {
+  const digits = document.querySelectorAll('.otp-digit');
+  digits.forEach((d, i) => {
+    d.addEventListener('input', () => { if (d.value && i < 5) digits[i+1].focus(); });
+    d.addEventListener('keydown', e => { if (e.key === 'Backspace' && !d.value && i > 0) digits[i-1].focus(); });
+  });
+  digits[0].focus();
+}
+
+async function verifyOTP() {
+  const otp = [1,2,3,4,5,6].map(i => document.getElementById('d'+i).value).join('');
+  if (otp.length !== 6) return showAlert('Enter complete 6-digit OTP');
+  const fd = new FormData();
+  fd.append('action', 'verify_otp');
+  fd.append('user_id', otpUserId);
+  fd.append('otp', otp);
+  try {
+    const res = await fetch(`${BASE}/auth.php`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      showAlert('Verified! Redirecting...', 'success');
+      setTimeout(() => window.location.href = 'patient-dashboard.html', 800);
+    } else { showAlert(data.message || 'Invalid OTP'); }
+  } catch(e) { showAlert('Verification error'); }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient Dashboard — MedCare Hospital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+<style>
+  :root { --role-color: #3FB950; --role-glow: rgba(63,185,80,0.2); }
+  .sidebar { --role-color: #3FB950; }
+  .sidebar-role-badge { background: rgba(63,185,80,0.15); color: #3FB950; }
+  .btn-primary { background: #3FB950 !important; }
+  .nav-item.active { border-left: 3px solid #3FB950; background: var(--surface2); color: var(--text); }
+  .prescription-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+  .medicine-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .medicine-item:last-child { border-bottom: none; }
+  .medicine-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--role-color); flex-shrink: 0; margin-top: 5px; }
+  .medicine-name { font-weight: 600; font-size: 0.9rem; color: var(--text); }
+  .medicine-details { font-size: 0.78rem; color: var(--text2); margin-top: 2px; }
+  .doctor-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; transition: all 0.2s; cursor: pointer; }
+  .doctor-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .doctor-avatar { width: 48px; height: 48px; background: var(--surface2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 12px; }
+  .notification-item { display: flex; gap: 12px; padding: 12px; border-radius: 8px; transition: background 0.2s; }
+  .notification-item:hover { background: var(--surface2); }
+  .notification-item.unread { background: rgba(63,185,80,0.05); border-left: 2px solid var(--role-color); }
+  .notif-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .notif-title { font-weight: 600; font-size: 0.85rem; color: var(--text); }
+  .notif-msg { font-size: 0.78rem; color: var(--text2); margin-top: 2px; line-height: 1.4; }
+  .notif-time { font-size: 0.7rem; color: var(--text3); margin-top: 4px; }
+  /* PRINT PRESCRIPTION */
+  .rx-print { display: none; }
+  @media print {
+    .rx-print { display: block !important; }
+    body > *:not(.rx-print) { display: none; }
+    .rx-print { background: white; color: black; padding: 40px; font-family: sans-serif; }
+    .rx-hospital-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 16px; margin-bottom: 20px; }
+    .rx-medicine-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .rx-medicine-table th, .rx-medicine-table td { border: 1px solid #ccc; padding: 8px 12px; }
+    .rx-medicine-table th { background: #f0f0f0; }
+    .rx-footer { margin-top: 40px; display: flex; justify-content: space-between; }
+    .rx-sig { border-top: 1px solid #333; padding-top: 8px; text-align: center; width: 150px; }
+  }
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="index.html" class="sidebar-logo">
+        <div class="sidebar-logo-icon">🏥</div>
+        <div>
+          <div class="sidebar-logo-text">Med<span>Care</span></div>
+          <div class="sidebar-role-badge">Patient Portal</div>
+        </div>
+      </a>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">🧑‍⚕️</div>
+      <div class="sidebar-name" id="sidebarName">Loading...</div>
+      <div class="sidebar-email" id="sidebarEmail"></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <button class="nav-item active" onclick="showPage('dashboard')">
+        <span class="nav-icon">🏠</span> Dashboard
+      </button>
+      <button class="nav-item" onclick="showPage('appointments')">
+        <span class="nav-icon">📅</span> Appointments
+        <span class="nav-badge" id="apptBadge" style="display:none">0</span>
+      </button>
+      <button class="nav-item" onclick="showPage('book')">
+        <span class="nav-icon">➕</span> Book Appointment
+      </button>
+      <div class="nav-section-label">Medical Records</div>
+      <button class="nav-item" onclick="showPage('labreports')">
+        <span class="nav-icon">🧪</span> Lab Reports
+      </button>
+      <button class="nav-item" onclick="showPage('prescriptions')">
+        <span class="nav-icon">💊</span> Prescriptions
+      </button>
+      <div class="nav-section-label">Settings</div>
+      <button class="nav-item" onclick="showPage('notifications')">
+        <span class="nav-icon">🔔</span> Notifications
+        <span class="nav-badge" id="notifBadge" style="display:none">0</span>
+      </button>
+      <button class="nav-item" onclick="showPage('privacy')">
+        <span class="nav-icon">🔒</span> Privacy
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="logout()">
+        <span>🚪</span> Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="showPage('notifications')" id="notifBtn">
+          🔔
+          <span class="notif-count" id="topNotifCount" style="display:none">0</span>
+        </button>
+        <button class="icon-btn" onclick="refreshData()" title="Refresh">🔄</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <!-- DASHBOARD PAGE -->
+      <div id="page-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header">
+              <div>
+                <div class="stat-value" id="statUpcoming">0</div>
+                <div class="stat-label">Upcoming Appointments</div>
+              </div>
+              <div class="stat-icon" style="background:rgba(63,185,80,0.15)">📅</div>
+            </div>
+            <div class="stat-change up" id="statUpcomingNote"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div>
+                <div class="stat-value" id="statLabReports">0</div>
+                <div class="stat-label">Lab Reports</div>
+              </div>
+              <div class="stat-icon" style="background:rgba(88,166,255,0.15)">🧪</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div>
+                <div class="stat-value" id="statPrescriptions">0</div>
+                <div class="stat-label">Active Prescriptions</div>
+              </div>
+              <div class="stat-icon" style="background:rgba(201,168,76,0.15)">💊</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div>
+                <div class="stat-value" id="statNotifications">0</div>
+                <div class="stat-label">Unread Notifications</div>
+              </div>
+              <div class="stat-icon" style="background:rgba(233,69,96,0.15)">🔔</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Today's Appointments</div><div class="card-subtitle">Your schedule for today</div></div>
+              <button class="btn btn-ghost btn-sm" onclick="showPage('book')">+ Book</button>
+            </div>
+            <div id="todayAppointments">
+              <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <div class="empty-state-title">No appointments today</div>
+                <div class="empty-state-desc">Book an appointment with a doctor</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Recent Notifications</div></div>
+              <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Mark all read</button>
+            </div>
+            <div id="dashboardNotifications"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- APPOINTMENTS PAGE -->
+      <div id="page-appointments" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">My Appointments</div></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm tab-filter active" onclick="filterAppointments('all',this)">All</button>
+              <button class="btn btn-ghost btn-sm tab-filter" onclick="filterAppointments('upcoming',this)">Upcoming</button>
+              <button class="btn btn-ghost btn-sm tab-filter" onclick="filterAppointments('past',this)">Past</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Code</th><th>Doctor</th><th>Date & Time</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="appointmentsTable"><tr><td colspan="6" class="empty-state"><div class="loading-spinner"></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOOK APPOINTMENT -->
+      <div id="page-book" style="display:none">
+        <div style="max-width:680px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Book New Appointment</div></div>
+            <form onsubmit="bookAppointment(event)">
+              <div class="form-group">
+                <label class="form-label">Select Doctor</label>
+                <select id="bookDoctor" class="form-control" required onchange="showDoctorStatus(this.value)">
+                  <option value="">Choose a doctor...</option>
+                </select>
+                <div id="doctorStatusInfo" style="margin-top:8px"></div>
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Appointment Date</label>
+                  <input type="date" id="bookDate" class="form-control" required min="">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Preferred Time</label>
+                  <select id="bookTime" class="form-control" required>
+                    <option value="">Select time...</option>
+                    <option value="08:00:00">8:00 AM</option>
+                    <option value="09:00:00">9:00 AM</option>
+                    <option value="10:00:00">10:00 AM</option>
+                    <option value="11:00:00">11:00 AM</option>
+                    <option value="12:00:00">12:00 PM</option>
+                    <option value="14:00:00">2:00 PM</option>
+                    <option value="15:00:00">3:00 PM</option>
+                    <option value="16:00:00">4:00 PM</option>
+                    <option value="17:00:00">5:00 PM</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Appointment Type</label>
+                <select id="bookType" class="form-control">
+                  <option value="consultation">General Consultation</option>
+                  <option value="follow_up">Follow-up</option>
+                  <option value="lab_review">Lab Report Review</option>
+                  <option value="emergency">Emergency</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Reason / Symptoms</label>
+                <textarea id="bookReason" class="form-control" rows="3" placeholder="Describe your symptoms or reason for visit..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-lg">📅 Confirm Appointment</button>
+            </form>
+          </div>
+
+          <div class="card" style="margin-top:16px">
+            <div class="card-header"><div class="card-title">Available Doctors</div></div>
+            <div id="doctorsGrid" class="grid-auto"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAB REPORTS -->
+      <div id="page-labreports" style="display:none">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Lab Reports</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Code</th><th>Test Name</th><th>Category</th><th>Date</th><th>Status</th><th>Result</th></tr></thead>
+              <tbody id="labReportsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRESCRIPTIONS -->
+      <div id="page-prescriptions" style="display:none">
+        <div id="prescriptionsGrid"></div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div id="page-notifications" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">All Notifications</div></div>
+            <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Mark all read</button>
+          </div>
+          <div id="allNotifications"></div>
+        </div>
+      </div>
+
+      <!-- PRIVACY -->
+      <div id="page-privacy" style="display:none">
+        <div style="max-width:480px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Privacy & Data Settings</div></div>
+            <div style="padding:8px 0">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border)">
+                <div>
+                  <div style="font-weight:600;font-size:0.9rem">Allow Doctor Access</div>
+                  <div style="font-size:0.78rem;color:var(--text2);margin-top:4px">Allow doctors to view your medical records and history</div>
+                </div>
+                <label style="position:relative;display:inline-block;width:44px;height:24px">
+                  <input type="checkbox" id="privacyToggle" checked onchange="togglePrivacy(this.checked)" style="opacity:0;width:0;height:0">
+                  <span id="privacySlider" style="position:absolute;inset:0;background:#484F58;border-radius:24px;cursor:pointer;transition:0.3s">
+                    <span style="position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:0.3s" id="privacyThumb"></span>
+                  </span>
+                </label>
+              </div>
+              <div style="padding:16px 0">
+                <div style="font-size:0.82rem;color:var(--text2);line-height:1.6">
+                  When doctor access is <strong>enabled</strong>, your assigned doctors can view your lab reports, prescriptions, and appointment history to provide better care.
+                  <br><br>When <strong>disabled</strong>, doctors will not be able to see your records.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="labDetailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Lab Report Details</div>
+      <button class="modal-close" onclick="closeModal('labDetailModal')">×</button>
+    </div>
+    <div class="modal-body" id="labDetailBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="rxModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div class="modal-title">Prescription Details</div>
+      <button class="modal-close" onclick="closeModal('rxModal')">×</button>
+    </div>
+    <div class="modal-body" id="rxModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="printPrescription()">🖨️ Print / Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT AREA -->
+<div class="rx-print" id="rxPrintArea"></div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+const BASE = 'php';
+let currentFilter = 'all';
+let currentRxData = null;
+
+// Auth check
+async function checkAuth() {
+  try {
+    const res = await fetch(`${BASE}/auth.php?action=get_session`);
+    const data = await res.json();
+    if (!data.authenticated || data.user.role !== 'patient') {
+      window.location.href = 'patient-login.html';
+    } else {
+      document.getElementById('sidebarName').textContent = data.user.name;
+      document.getElementById('sidebarEmail').textContent = data.user.email || '';
+      loadDashboard();
+    }
+  } catch(e) { window.location.href = 'patient-login.html'; }
+}
+
+async function loadDashboard() {
+  try {
+    const res = await fetch(`${BASE}/patient_api.php?action=get_dashboard`);
+    const data = await res.json();
+    if (!data.success) return;
+    const d = data.data;
+    document.getElementById('statUpcoming').textContent = d.upcoming_appointments;
+    document.getElementById('statLabReports').textContent = d.lab_reports;
+    document.getElementById('statPrescriptions').textContent = d.active_prescriptions;
+    document.getElementById('statNotifications').textContent = d.unread_notifications;
+
+    // Notification badges
+    if (d.unread_notifications > 0) {
+      document.getElementById('notifBadge').style.display = '';
+      document.getElementById('notifBadge').textContent = d.unread_notifications;
+      document.getElementById('topNotifCount').style.display = '';
+      document.getElementById('topNotifCount').textContent = d.unread_notifications;
+    }
+
+    // Today's appointments
+    renderTodayAppointments(d.today_appointments);
+    renderDashboardNotifications(d.notifications);
+  } catch(e) {}
+}
+
+function renderTodayAppointments(appointments) {
+  const container = document.getElementById('todayAppointments');
+  if (!appointments?.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-title">No appointments today</div><div class="empty-state-desc">Book an appointment with a doctor</div></div>`;
+    return;
+  }
+  container.innerHTML = appointments.map(a => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;background:var(--surface2);margin-bottom:8px">
+      <div style="width:44px;height:44px;background:var(--surface);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">👨‍⚕️</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:0.88rem">Dr. ${a.doctor_name}</div>
+        <div style="font-size:0.75rem;color:var(--text2)">${a.specialization} · Room ${a.room_number}</div>
+        <div style="font-size:0.75rem;color:var(--text2);margin-top:2px">⏰ ${formatTime(a.appointment_time)}</div>
+      </div>
+      <div>
+        <span class="status-indicator status-${a.doctor_status}"><span class="status-dot"></span>${a.doctor_status}</span>
+        <div style="margin-top:4px">${statusBadge(a.status)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderDashboardNotifications(notifications) {
+  const container = document.getElementById('dashboardNotifications');
+  if (!notifications?.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔔</div><div class="empty-state-title">No notifications</div></div>`;
+    return;
+  }
+  const icons = { appointment:'📅', lab_report:'🧪', prescription:'💊', emergency:'🚨', doctor_status:'👨‍⚕️', general:'📢' };
+  container.innerHTML = notifications.map(n => `
+    <div class="notification-item ${!n.is_read ? 'unread' : ''}">
+      <div class="notif-icon">${icons[n.type] || '📢'}</div>
+      <div>
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-msg">${n.message}</div>
+        <div class="notif-time">${timeAgo(n.created_at)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showPage(page) {
+  document.querySelectorAll('[id^=page-]').forEach(p => p.style.display = 'none');
+  document.getElementById(`page-${page}`).style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  event?.target?.closest('.nav-item')?.classList.add('active');
+
+  const titles = { dashboard:'Dashboard', appointments:'My Appointments', book:'Book Appointment', labreports:'Lab Reports', prescriptions:'Prescriptions', notifications:'Notifications', privacy:'Privacy Settings' };
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+
+  // Load data per page
+  if (page === 'appointments') loadAppointments('all');
+  else if (page === 'book') loadDoctors();
+  else if (page === 'labreports') loadLabReports();
+  else if (page === 'prescriptions') loadPrescriptions();
+  else if (page === 'notifications') loadNotifications();
+}
+
+async function loadAppointments(filter = 'all') {
+  currentFilter = filter;
+  const tbody = document.getElementById('appointmentsTable');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px"><div class="loading-spinner" style="margin:auto"></div></td></tr>';
+  try {
+    const res = await fetch(`${BASE}/patient_api.php?action=get_appointments&filter=${filter}`);
+    const data = await res.json();
+    if (!data.appointments?.length) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-title">No appointments found</div></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.appointments.map(a => `
+      <tr>
+        <td><code style="font-size:0.78rem;color:var(--text2)">${a.appointment_code}</code></td>
+        <td><div style="font-weight:500">Dr. ${a.doctor_name}</div><div style="font-size:0.75rem;color:var(--text2)">${a.specialization}</div></td>
+        <td><div>${formatDate(a.appointment_date)}</div><div style="font-size:0.75rem;color:var(--text2)">${formatTime(a.appointment_time)}</div></td>
+        <td><span class="badge badge-blue">${a.type.replace('_',' ')}</span></td>
+        <td>${statusBadge(a.status)}${a.status === 'postponed' ? `<div style="font-size:0.7rem;color:var(--orange);margin-top:4px">${a.postpone_reason || ''}</div>` : ''}</td>
+        <td>
+          ${['pending','confirmed'].includes(a.status) ? `<button class="btn btn-danger btn-sm" onclick="cancelAppointment(${a.id})">Cancel</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  } catch(e) { showToast('Failed to load appointments', 'error'); }
+}
+
+function filterAppointments(filter, btn) {
+  document.querySelectorAll('.tab-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadAppointments(filter);
+}
+
+async function loadDoctors() {
+  const res = await fetch(`${BASE}/patient_api.php?action=get_doctors`);
+  const data = await res.json();
+  if (!data.doctors) return;
+
+  const select = document.getElementById('bookDoctor');
+  select.innerHTML = '<option value="">Choose a doctor...</option>' + data.doctors.map(d => `<option value="${d.id}" data-status="${d.current_status}">${d.name} — ${d.specialization} (₹${d.consultation_fee})</option>`).join('');
+
+  const grid = document.getElementById('doctorsGrid');
+  grid.innerHTML = data.doctors.map(d => `
+    <div class="doctor-card" onclick="document.getElementById('bookDoctor').value='${d.id}'; showDoctorStatus('${d.id}')">
+      <div class="doctor-avatar">👨‍⚕️</div>
+      <div style="font-weight:600;font-size:0.9rem">Dr. ${d.name}</div>
+      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px">${d.specialization}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="status-indicator status-${d.current_status || 'offline'}"><span class="status-dot"></span>${d.current_status || 'offline'}</span>
+        <span style="font-size:0.78rem;color:var(--text2)">₹${d.consultation_fee}</span>
+      </div>
+      ${d.current_status !== 'available' ? `<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="event.stopPropagation();notifyMe(${d.id})">🔔 Notify Me</button>` : ''}
+    </div>
+  `).join('');
+
+  // Set min date
+  document.getElementById('bookDate').min = new Date().toISOString().split('T')[0];
+}
+
+function showDoctorStatus(doctorId) {
+  const select = document.getElementById('bookDoctor');
+  const opt = select.querySelector(`option[value="${doctorId}"]`);
+  const info = document.getElementById('doctorStatusInfo');
+  if (!opt) return (info.innerHTML = '');
+  const status = opt.dataset.status;
+  const msgs = {
+    available: `<div style="padding:8px 12px;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.2);border-radius:8px;font-size:0.78rem;color:#3FB950">✅ Doctor is available for appointments</div>`,
+    busy: `<div style="padding:8px 12px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.2);border-radius:8px;font-size:0.78rem;color:#F85149">⏳ Doctor is currently busy. You can still book for later.</div>`,
+    emergency: `<div style="padding:8px 12px;background:rgba(219,109,40,0.1);border:1px solid rgba(219,109,40,0.2);border-radius:8px;font-size:0.78rem;color:#DB6D28">🚨 Doctor is in emergency. New appointments may be delayed.</div>`
+  };
+  info.innerHTML = msgs[status] || '';
+}
+
+async function bookAppointment(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = 'Booking...';
+  try {
+    const fd = new FormData();
+    fd.append('action', 'book_appointment');
+    fd.append('doctor_id', document.getElementById('bookDoctor').value);
+    fd.append('date', document.getElementById('bookDate').value);
+    fd.append('time', document.getElementById('bookTime').value);
+    fd.append('type', document.getElementById('bookType').value);
+    fd.append('reason', document.getElementById('bookReason').value);
+    const res = await fetch(`${BASE}/patient_api.php`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`✅ ${data.message}`, 'success');
+      setTimeout(() => showPage('appointments'), 1000);
+    } else { showToast(data.message, 'error'); }
+  } catch(e) { showToast('Error booking appointment', 'error'); }
+  btn.disabled = false; btn.textContent = '📅 Confirm Appointment';
+}
+
+async function cancelAppointment(id) {
+  if (!confirm('Cancel this appointment?')) return;
+  const fd = new FormData();
+  fd.append('action', 'cancel_appointment');
+  fd.append('appointment_id', id);
+  const res = await fetch(`${BASE}/patient_api.php`, { method: 'POST', body: fd });
+  const data = await res.json();
+  if (data.success) { showToast('Appointment cancelled', 'success'); loadAppointments(currentFilter); }
+  else showToast(data.message, 'error');
+}
+
+async function loadLabReports() {
+  const tbody = document.getElementById('labReportsTable');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px"><div class="loading-spinner" style="margin:auto"></div></td></tr>';
+  const res = await fetch(`${BASE}/patient_api.php?action=get_lab_reports`);
+  const data = await res.json();
+  if (!data.reports?.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">🧪</div><div class="empty-state-title">No lab reports</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.reports.map(r => `
+    <tr>
+      <td><code style="font-size:0.75rem;color:var(--text2)">${r.report_code}</code></td>
+      <td><div style="font-weight:500">${r.test_name}</div><div style="font-size:0.75rem;color:var(--text2)">By Dr. ${r.doctor_name || 'Lab'}</div></td>
+      <td><span class="badge badge-blue">${r.test_category || 'General'}</span></td>
+      <td>${formatDate(r.report_date || r.created_at)}</td>
+      <td>${labStatusBadge(r.status)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick='showLabDetail(${JSON.stringify(r).replace(/'/g,"&#39;")})'>View</button></td>
+    </tr>
+  `).join('');
+}
+
+function showLabDetail(report) {
+  document.getElementById('labDetailBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><div class="form-label">Test Name</div><div style="font-weight:600">${report.test_name}</div></div>
+      <div><div class="form-label">Code</div><div style="font-weight:600">${report.report_code}</div></div>
+      <div><div class="form-label">Category</div><div>${report.test_category || 'N/A'}</div></div>
+      <div><div class="form-label">Date</div><div>${formatDate(report.report_date || report.created_at)}</div></div>
+    </div>
+    <div style="margin-bottom:12px"><div class="form-label">Result</div>
+      <div style="background:var(--surface2);padding:12px;border-radius:8px;font-size:0.85rem;line-height:1.6">${report.result || 'Pending'}</div>
+    </div>
+    <div style="margin-bottom:12px"><div class="form-label">Normal Range</div><div style="font-size:0.85rem;color:var(--text2)">${report.normal_range || 'N/A'}</div></div>
+    <div><div class="form-label">Remarks</div><div style="font-size:0.85rem;color:var(--text2)">${report.remarks || 'None'}</div></div>
+  `;
+  document.getElementById('labDetailModal').classList.add('active');
+}
+
+async function loadPrescriptions() {
+  const grid = document.getElementById('prescriptionsGrid');
+  grid.innerHTML = '<div class="loading-spinner" style="margin:32px auto;display:block"></div>';
+  const res = await fetch(`${BASE}/patient_api.php?action=get_prescriptions`);
+  const data = await res.json();
+  if (!data.prescriptions?.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💊</div><div class="empty-state-title">No prescriptions yet</div></div>';
+    return;
+  }
+  grid.innerHTML = data.prescriptions.map(rx => `
+    <div class="prescription-card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-weight:700;font-size:1rem">${rx.prescription_code}</div>
+          <div style="font-size:0.78rem;color:var(--text2);margin-top:2px">Dr. ${rx.doctor_name} · ${rx.specialization}</div>
+          <div style="font-size:0.75rem;color:var(--text3)">${formatDate(rx.created_at)}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${statusBadge(rx.status)}
+          <button class="btn btn-ghost btn-sm" onclick='openRx(${JSON.stringify(rx).replace(/'/g,"&#39;")})'>View & Print</button>
+        </div>
+      </div>
+      <div style="background:var(--surface2);padding:12px;border-radius:8px;margin-bottom:12px">
+        <div style="font-size:0.75rem;font-weight:600;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Diagnosis</div>
+        <div style="font-size:0.88rem">${rx.diagnosis}</div>
+      </div>
+      <div>
+        <div style="font-size:0.75rem;font-weight:600;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Medicines (${rx.medicines.length})</div>
+        ${rx.medicines.map(m => `
+          <div class="medicine-item">
+            <div class="medicine-dot"></div>
+            <div>
+              <div class="medicine-name">${m.name} — <span style="color:var(--role-color)">${m.dosage}</span></div>
+              <div class="medicine-details">${m.frequency} · ${m.duration} · ${m.instructions || ''}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      ${rx.follow_up_date ? `<div style="margin-top:12px;padding:8px 12px;background:rgba(88,166,255,0.08);border-radius:8px;font-size:0.78rem;color:var(--blue)">📅 Follow-up: ${formatDate(rx.follow_up_date)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function openRx(rx) {
+  currentRxData = rx;
+  document.getElementById('rxModalBody').innerHTML = `
+    <div style="border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:16px">
+      <div style="font-weight:700;font-size:1.1rem;margin-bottom:4px">${rx.prescription_code}</div>
+      <div style="font-size:0.82rem;color:var(--text2)">Prescribed by Dr. ${rx.doctor_name} on ${formatDate(rx.created_at)}</div>
+    </div>
+    <div style="margin-bottom:16px"><div class="form-label">Diagnosis</div><div style="font-size:0.9rem">${rx.diagnosis}</div></div>
+    <div style="margin-bottom:16px">
+      <div class="form-label">Medicines</div>
+      ${rx.medicines.map(m => `<div class="medicine-item"><div class="medicine-dot"></div><div><div class="medicine-name">${m.name} — ${m.dosage}</div><div class="medicine-details">${m.frequency} · ${m.duration}</div>${m.instructions ? `<div class="medicine-details" style="color:var(--text3)">${m.instructions}</div>` : ''}</div></div>`).join('')}
+    </div>
+    ${rx.instructions ? `<div style="margin-bottom:16px"><div class="form-label">Instructions</div><div style="font-size:0.85rem;color:var(--text2)">${rx.instructions}</div></div>` : ''}
+    ${rx.follow_up_date ? `<div style="padding:10px 14px;background:rgba(88,166,255,0.08);border-radius:8px;font-size:0.82rem;color:var(--blue)">📅 Follow-up Date: ${formatDate(rx.follow_up_date)}</div>` : ''}
+  `;
+  document.getElementById('rxModal').classList.add('active');
+}
+
+function printPrescription() {
+  if (!currentRxData) return;
+  const rx = currentRxData;
+  document.getElementById('rxPrintArea').innerHTML = `
+    <div class="rx-hospital-header">
+      <h1 style="font-size:1.8rem">🏥 MedCare Hospital</h1>
+      <p>Unified Healthcare · Nellore, Andhra Pradesh</p>
+      <p>Phone: +91-9000000001 | Email: info@medcare.com</p>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <h3>PRESCRIPTION</h3>
+        <p><strong>Rx No:</strong> ${rx.prescription_code}</p>
+        <p><strong>Date:</strong> ${formatDate(rx.created_at)}</p>
+      </div>
+      <div style="text-align:right">
+        <p><strong>Doctor:</strong> Dr. ${rx.doctor_name}</p>
+        <p>${rx.specialization || ''}</p>
+      </div>
+    </div>
+    <p><strong>Diagnosis:</strong> ${rx.diagnosis}</p>
+    <table class="rx-medicine-table">
+      <thead><tr><th>#</th><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Duration</th><th>Instructions</th></tr></thead>
+      <tbody>${rx.medicines.map((m,i) => `<tr><td>${i+1}</td><td>${m.name}</td><td>${m.dosage}</td><td>${m.frequency}</td><td>${m.duration}</td><td>${m.instructions || '-'}</td></tr>`).join('')}</tbody>
+    </table>
+    ${rx.instructions ? `<p><strong>General Instructions:</strong> ${rx.instructions}</p>` : ''}
+    ${rx.follow_up_date ? `<p><strong>Follow-up:</strong> ${formatDate(rx.follow_up_date)}</p>` : ''}
+    <div class="rx-footer">
+      <div class="rx-sig">Doctor's Signature<br><small>Dr. ${rx.doctor_name}</small></div>
+      <div style="font-size:0.75rem;color:#666;text-align:right"><p>This is a computer generated prescription</p><p>MedCare Hospital, Nellore</p></div>
+    </div>
+  `;
+  window.print();
+}
+
+async function loadNotifications() {
+  const res = await fetch(`${BASE}/patient_api.php?action=get_notifications`);
+  const data = await res.json();
+  const container = document.getElementById('allNotifications');
+  const icons = { appointment:'📅', lab_report:'🧪', prescription:'💊', emergency:'🚨', doctor_status:'👨‍⚕️', general:'📢' };
+  if (!data.notifications?.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔔</div><div class="empty-state-title">No notifications</div></div>';
+    return;
+  }
+  container.innerHTML = data.notifications.map(n => `
+    <div class="notification-item ${!n.is_read ? 'unread' : ''}">
+      <div class="notif-icon">${icons[n.type] || '📢'}</div>
+      <div style="flex:1">
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-msg">${n.message}</div>
+        <div class="notif-time">${timeAgo(n.created_at)}</div>
+      </div>
+      ${!n.is_read ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--role-color);flex-shrink:0;margin-top:6px"></div>` : ''}
+    </div>
+  `).join('');
+}
+
+async function markAllRead() {
+  const fd = new FormData(); fd.append('action','mark_notification_read'); fd.append('id','0');
+  await fetch(`${BASE}/patient_api.php`, { method: 'POST', body: fd });
+  document.getElementById('notifBadge').style.display = 'none';
+  document.getElementById('topNotifCount').style.display = 'none';
+  showToast('All notifications marked as read', 'success');
+  loadDashboard();
+}
+
+async function notifyMe(doctorId) {
+  const fd = new FormData(); fd.append('action','notify_me'); fd.append('doctor_id',doctorId);
+  const res = await fetch(`${BASE}/patient_api.php`, { method: 'POST', body: fd });
+  const data = await res.json();
+  showToast(data.message, data.success ? 'success' : 'error');
+}
+
+async function togglePrivacy(allow) {
+  const fd = new FormData(); fd.append('action','toggle_privacy'); fd.append('allow', allow ? 1 : 0);
+  const res = await fetch(`${BASE}/patient_api.php`, { method: 'POST', body: fd });
+  const data = await res.json();
+  // Update toggle visual
+  const slider = document.getElementById('privacySlider');
+  const thumb = document.getElementById('privacyThumb');
+  if (allow) { slider.style.background = '#3FB950'; thumb.style.left = '22px'; }
+  else { slider.style.background = '#484F58'; thumb.style.left = '3px'; }
+  showToast(data.message, 'success');
+}
+
+async function logout() {
+  await fetch(`${BASE}/auth.php`, { method: 'POST', body: new FormData(Object.assign(document.createElement('form'), { })) });
+  const fd = new FormData(); fd.append('action','logout');
+  await fetch(`${BASE}/auth.php`, { method: 'POST', body: fd });
+  window.location.href = 'index.html';
+}
+
+function refreshData() { loadDashboard(); showToast('Data refreshed', 'success'); }
+
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// Polling for notifications
+setInterval(async () => {
+  try {
+    const res = await fetch(`${BASE}/patient_api.php?action=get_dashboard`);
+    const data = await res.json();
+    if (data.success && data.data.unread_notifications > 0) {
+      document.getElementById('topNotifCount').style.display = '';
+      document.getElementById('topNotifCount').textContent = data.data.unread_notifications;
+    }
+  } catch(e) {}
+}, 30000);
+
+// HELPERS
+function formatDate(dateStr) {
+  if (!dateStr) return 'N/A';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+}
+function formatTime(t) {
+  if (!t) return '';
+  const [h,m] = t.split(':');
+  const hour = parseInt(h);
+  return `${hour > 12 ? hour-12 : hour || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`;
+}
+function timeAgo(dateStr) {
+  const diff = (new Date() - new Date(dateStr)) / 1000;
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+function statusBadge(status) {
+  const map = { pending:'badge-yellow', confirmed:'badge-blue', active:'badge-green', completed:'badge-gray', cancelled:'badge-red', postponed:'badge-orange', no_show:'badge-red', active_prescription:'badge-green', dispensed:'badge-gray', expired:'badge-red' };
+  return `<span class="badge ${map[status] || 'badge-gray'}">${status.replace('_',' ')}</span>`;
+}
+function labStatusBadge(status) {
+  const map = { pending:'badge-yellow', in_progress:'badge-blue', completed:'badge-green', reviewed:'badge-purple' };
+  return `<span class="badge ${map[status] || 'badge-gray'}">${status}</span>`;
+}
+function showToast(msg, type = 'info') {
+  const icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><span class="toast-text">${msg}</span><span class="toast-close" onclick="this.parentElement.remove()">×</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// Init
+checkAuth();
+</script>
+</body>
+</html>
